@@ -1,10 +1,11 @@
 import { BaseEntity } from '../../common/common.base';
-import { BeforeInsert, Column } from 'typeorm';
+import { BeforeInsert, Column, Entity } from 'typeorm';
 import { RoleEnum } from './role.enum';
 import { ProviderEnum } from './provider.enum';
 import * as bcrypt from 'bcryptjs';
 import { InternalServerErrorException } from '@nestjs/common';
 
+@Entity()
 export class User extends BaseEntity {
   @Column()
   public nickname: string;
@@ -12,7 +13,7 @@ export class User extends BaseEntity {
   @Column()
   public email: string;
 
-  @Column()
+  @Column({ nullable: true })
   public password: string;
 
   @Column({
@@ -31,12 +32,14 @@ export class User extends BaseEntity {
 
   @BeforeInsert()
   async hashPassword() {
-    try {
-      const saltValue = await bcrypt.genSalt(10);
-      this.password = await bcrypt.hash(this.password, saltValue);
-    } catch (e) {
-      console.log(e);
-      throw new InternalServerErrorException();
+    if (this.provider === 'local') {
+      try {
+        const saltValue = await bcrypt.genSalt(10);
+        this.password = await bcrypt.hash(this.password, saltValue);
+      } catch (e) {
+        console.log(e);
+        throw new InternalServerErrorException();
+      }
     }
   }
 

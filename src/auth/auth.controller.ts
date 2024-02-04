@@ -1,34 +1,57 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Req,
+  UseGuards,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { CreateAuthDto } from './dto/create-auth.dto';
-import { UpdateAuthDto } from './dto/update-auth.dto';
+import { CreateUserDto } from '../user/dto/create-user.dto';
+import { RequestWithUserInterface } from './interfaces/requestWithUser.interface';
+import { LocalAuthGuard } from './guards/local-auth.guard';
+import { GoogleAuthGuard } from './guards/google-auth.guard';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Post()
-  create(@Body() createAuthDto: CreateAuthDto) {
-    return this.authService.create(createAuthDto);
+  @Post('/signup')
+  async createUser(@Body() createUser: CreateUserDto) {
+    return this.authService.createUser(createUser);
   }
 
-  @Get()
-  findAll() {
-    return this.authService.findAll();
+  // @Post('/login')
+  // async loginUser(@Body() loginUser: LoginUserDto) {
+  //   const user = await this.authService.loginUser(loginUser);
+  //   const token = this.authService.generateAccessToken(user.id);
+  //   return { user, token };
+  // }
+
+  @Post('/login')
+  @UseGuards(LocalAuthGuard)
+  async loginUser(@Req() requestWithUser: RequestWithUserInterface) {
+    const { user } = requestWithUser;
+    console.log(user);
+    const token = this.authService.generateAccessToken(user.id);
+    return { user, token };
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.authService.findOne(+id);
+  @Get('google')
+  @UseGuards(GoogleAuthGuard)
+  async googleLogin() {
+    return HttpStatus.OK;
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateAuthDto: UpdateAuthDto) {
-    return this.authService.update(+id, updateAuthDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.authService.remove(+id);
+  @Get('google/callback')
+  @UseGuards(GoogleAuthGuard)
+  async googlecallback(@Req() req: RequestWithUserInterface) {
+    const { user } = req;
+    return user;
   }
 }
